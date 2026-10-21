@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.env*
+.DS_Store
+asset-work
+assets_src
+snaps
+tools
+dev
+test
+docs
+*.log

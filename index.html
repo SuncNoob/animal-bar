@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>动物酒馆 · Animal Bar</title>
+<meta name="description" content="动物酒馆：和朋友一起聊天、点歌、碰杯，逛逛胡同里的小酒馆。Animal Bar: chat, pick songs and clink glasses with friends in a little Beijing hutong bar.">
+<link rel="icon" type="image/webp" href="/assets/portraits/tuantuan-avatar.webp">
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- loading: pure CSS motion (transform/opacity), so it keeps moving while the yard is being built -->
+<div id="loading" class="loading" role="status" aria-live="polite">
+  <div class="ld-card">
+    <div class="ld-mugs" aria-hidden="true"><span>🍺</span><span>🍹</span><span>🍺</span></div>
+    <h1 class="ld-title" data-en="Welcome to Animal Bar!">欢迎来到动物酒吧！</h1>
+    <p class="ld-sub" data-en="A little hutong bar in Beijing, run by animals">北京胡同里，一家动物开的小酒馆</p>
+    <div class="ld-bar" aria-hidden="true"><i id="ld-fill"></i></div>
+    <p id="ld-step" class="ld-step" data-en="Opening the gate…">正在推开院门…</p>
+  </div>
+</div>
+
+<!-- entry -->
+<div id="entry" class="overlay entry">
+  <div class="card entry-card">
+    <div id="entry-lang" class="entry-lang"></div>
+    <h1 class="entry-title" data-en="Welcome to Animal Bar!">欢迎来到动物酒吧！</h1>
+    <div class="entry-head">
+      <div class="logo brand-logo" aria-label="动物酒馆" data-en-aria="Animal Bar"><span data-en="Animal">动物</span><span data-en="Bar">酒馆</span></div>
+      <div>
+        <div class="entry-kicker" data-en="Beijing · Hutong · Animal Bar">北京 · 胡同 · 动物酒馆</div>
+        <p class="welcome" data-en-html="The door's open, the music hasn't started.<br>Pick a name and come on in.">门开着，歌还没开始。<br>起个名字，进来坐坐。</p>
+      </div>
+    </div>
+    <label class="field"><span data-en="Your nickname">起一个昵称</span>
+      <input id="nick-input" maxlength="16" autocomplete="off" placeholder="例如：胡同晚风" data-en-placeholder="e.g. Hutong Breeze">
+    </label>
+    <div class="field"><span data-en="Pick yourself">选一个自己</span>
+      <div class="avatar-pick">
+        <button class="avatar-btn" data-avatar="dog_ge"><img src="/assets/portraits/dog.webp" alt=""><span class="av-name" data-en="Brother Dog">狗哥</span><span class="av-tag" data-en="teal jacket · floppy ears">蓝绿夹克 · 垂耳</span></button>
+        <button class="avatar-btn" data-avatar="rabbit_mei"><img src="/assets/portraits/rabbit.webp" alt=""><span class="av-name" data-en="Bunny Mei">兔妹</span><span class="av-tag" data-en="lilac hoodie · long ears">浅紫卫衣 · 长耳</span></button>
+        <button class="avatar-btn" data-avatar="chicken_jibie"><img src="/assets/portraits/chicken.webp" alt=""><span class="av-name" data-en="Chick Punk">鸡瘪</span><span class="av-tag" data-en="street gang · shades & gold chain">古惑仔 · 墨镜金链</span></button>
+      </div>
+    </div>
+    <div class="field"><span data-en="Dress up">装扮一下</span> <span class="field-sub" data-en="you can change it anytime inside">进去以后也能随时换</span>
+      <div id="entry-wardrobe"></div>
+    </div>
+    <button id="enter-btn" class="primary" disabled data-en="Push the door open">推门进去</button>
+    <p class="hint" data-en="Nickname: 1–16 characters. You can rename yourself in the chat room later.">昵称 1–16 个字。之后可以在聊天室里改名。</p>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" hidden>
+  <div class="hud-top">
+    <span id="hud-name" class="pill me-pill"></span>
+    <span id="hud-place" class="pill" data-en="Yard">院子</span>
+    <span id="net-pill" class="pill net-pill" hidden></span>
+    <span id="bump-count" class="pill" hidden></span>
+    <span class="spacer"></span>
+    <button id="speaker-btn" class="pill btn speaker" aria-pressed="false" data-en="🔇 Muted">🔇 静音</button>
+    <button id="btn-wardrobe" class="pill btn" data-en="Outfit">换装</button>
+    <button id="btn-menu" class="pill btn" data-en="Drinks">酒单</button>
+    <button id="btn-chat" class="pill btn accent"><span data-en="Chat">聊天室</span><span id="unread" class="badge" hidden>0</span></button>
+    <span id="hud-lang"></span>
+  </div>
+  <div id="bubbles" class="bubbles"></div>
+  <button id="np-pill" class="np-pill" aria-label="打开点唱机" data-en-aria="Open the jukebox">♪</button>
+  <div id="bike-pill" class="bike-pill" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="order-tickets" class="order-tickets" aria-live="polite"></div>
+  <button id="action-btn" class="action" hidden></button>
+  <div id="emotes" class="emotes">
+    <button data-emote="wave" aria-label="挥手（1）" data-en-aria="Wave (1)"><span aria-hidden="true">👋</span><span data-en="Wave">挥手</span></button>
+    <button data-emote="cheer" aria-label="欢呼（2）" data-en-aria="Cheer (2)"><span aria-hidden="true">🎉</span><span data-en="Cheer">欢呼</span></button>
+    <button data-emote="dance" aria-label="蹦迪（3）" data-en-aria="Dance (3)"><span aria-hidden="true">🪩</span><span data-en="Dance">蹦迪</span></button>
+  </div>
+  <button id="return-btn" class="action ghost" hidden data-en="Swim to shore">回岸边</button>
+  <button id="dash-btn" class="dash" hidden aria-label="冲撞（Shift）" data-en-aria="Charge (Shift)"><span data-en="Go!">冲！</span><kbd>Shift</kbd></button>
+  <button id="jump-btn" class="dash jump" hidden aria-label="跳（空格）" data-en-aria="Jump (Space)"><span data-en="Jump">跳</span><kbd data-en="Space">空格</kbd></button>
+  <div id="joystick" class="joystick"><div id="stick"></div></div>
+  <div class="helpline" data-en="WASD move · Space jump · Shift charge · E interact · 3 dance · drag to turn the camera · scroll to zoom">WASD 移动 · 空格跳 · Shift 冲撞 · E 互动 · 3 蹦迪 · 拖动转镜头 · 滚轮缩放</div>
+</div>
+
+<!-- chat room -->
+<div id="chat" class="overlay chat" hidden>
+  <div class="chat-win">
+    <div class="titlebar">
+      <span class="title" data-en="Animal Bar Chat">动物酒馆聊天室</span>
+      <button id="online-count" class="online-count" aria-expanded="false" aria-controls="sidebar" data-en="Online 0">在线 0</button>
+      <button id="chat-back" class="back" data-en="← Back to the bar">← 返回酒馆</button>
+    </div>
+    <div class="profile-row">
+      <span data-en="Nickname">昵称</span> <input id="rename-input" maxlength="16" autocomplete="off"> <button id="rename-btn" data-en="Rename">改名</button>
+      <span id="conn" class="conn" role="status"></span>
+    </div>
+    <div class="chat-body">
+      <div class="transcript-wrap">
+        <div class="panel-head" data-en="Public chat">公共聊天</div>
+        <div id="transcript" class="transcript" role="log" aria-live="polite" aria-label="聊天记录" data-en-aria="Chat log"></div>
+        <button id="new-msgs" class="new-msgs" hidden data-en="New messages">有新消息</button>
+      </div>
+      <div class="sidebar" id="sidebar">
+        <div class="panel-head" id="side-online" data-en="Who's here">在线名单</div>
+        <ul id="online-list"></ul>
+        <div class="panel-head" data-en="Jukebox">点唱机</div>
+        <div class="jukebox-mini" data-en-html="No songs uploaded yet<br>Nothing playing">曲库待上传<br>暂无播放</div>
+      </div>
+    </div>
+    <form id="chat-form" class="chat-form" autocomplete="off">
+      <input id="chat-input" maxlength="300" placeholder="说点什么吧…" data-en-placeholder="Say something…">
+      <button type="submit" class="primary" data-en="Send">发送</button>
+    </form>
+  </div>
+</div>
+
+<!-- generic modal -->
+<div id="modal" class="overlay" hidden>
+  <div class="card modal-card" role="dialog" aria-modal="true" aria-label="弹窗" data-en-aria="Dialog" tabindex="-1">
+    <button id="modal-close" class="close" aria-label="关闭" data-en-aria="Close">×</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<script>
+// language before first paint (the game bundle is big); same rule as src/i18n.js: saved choice, else the build default
+(function () {
+  var l; try { l = localStorage.getItem('tiaohai.lang'); } catch (e) {}
+  if (l !== 'zh' && l !== 'en') l = '%VITE_LANG%' === 'zh' ? 'zh' : 'en';
+  document.documentElement.lang = l === 'en' ? 'en' : 'zh-CN';
+  document.title = l === 'en' ? 'Animal Bar' : '动物酒馆';
+  if (l !== 'en') return;
+  var q = function (s, f) { var a = document.querySelectorAll(s); for (var i = 0; i < a.length; i++) f(a[i]); };
+  q('[data-en]', function (e) { e.textContent = e.getAttribute('data-en'); });
+  q('[data-en-html]', function (e) { e.innerHTML = e.getAttribute('data-en-html'); });
+  q('[data-en-placeholder]', function (e) { e.placeholder = e.getAttribute('data-en-placeholder'); });
+  q('[data-en-aria]', function (e) { e.setAttribute('aria-label', e.getAttribute('data-en-aria')); });
+})();
+</script>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

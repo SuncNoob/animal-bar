@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["hnd1"],
+  "functions": {
+    "api/mqtt.js": {
+      "maxDuration": 800
+    }
+  }
+}

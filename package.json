@@ -1,0 +1,29 @@
+{
+  "name": "animal-bar",
+  "version": "0.1.0",
+  "description": "A cozy multiplayer browser game: a Beijing hutong bar run by animals. Chat, pick songs, play liar's dice, jump in the lagoon. Three.js + MQTT, Chinese/English.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "music": "python3 tools/make-music.py",
+    "test:mqtt": "node --env-file=.env.local --test test/mqtt.integration.test.js"
+  },
+  "dependencies": {
+    "aedes": "1.2.0",
+    "aedes-persistence-redis": "11.2.2",
+    "ioredis": "6.0.0",
+    "mqemitter-redis": "8.0.0",
+    "mqtt": "^5.16.1",
+    "three": "^0.186.1",
+    "vite": "^8.3.4",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.5.1",
+    "sharp": "^0.35.5"
+  }
+}

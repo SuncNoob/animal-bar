@@ -1,0 +1,42 @@
+{
+ "note": "House tracks synthesised by tools/make-music.py (CC0). Add your own: drop an audio file in public/music, add an entry here, and optionally /music/<id>.lrc for lyrics. Only add music you have the rights to.",
+ "tracks": [
+  {
+   "id": "courtyard-breeze",
+   "title": "院子晚风",
+   "title_en": "Courtyard Breeze",
+   "artist": "动物酒馆驻场乐队",
+   "artist_en": "Animal Bar House Band",
+   "note": "纯音乐 · 没人点歌时的默认曲",
+   "note_en": "instrumental · plays when nobody has requested a song",
+   "src": "/music/courtyard-breeze.m4a",
+   "duration": 72.0,
+   "default": true,
+   "lines": []
+  },
+  {
+   "id": "lagoon-bounce",
+   "title": "湖边蹦迪",
+   "title_en": "Lagoon Bounce",
+   "artist": "动物酒馆驻场乐队",
+   "artist_en": "Animal Bar House Band",
+   "note": "纯音乐",
+   "note_en": "instrumental",
+   "src": "/music/lagoon-bounce.m4a",
+   "duration": 64.0,
+   "lines": []
+  },
+  {
+   "id": "ginkgo-waltz",
+   "title": "银杏华尔兹",
+   "title_en": "Ginkgo Waltz",
+   "artist": "动物酒馆驻场乐队",
+   "artist_en": "Animal Bar House Band",
+   "note": "纯音乐 · 八音盒",
+   "note_en": "instrumental · music box",
+   "src": "/music/ginkgo-waltz.m4a",
+   "duration": 60.0,
+   "lines": []
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+# local settings and secrets (broker logins, REDIS_URL)
+.env
+.env.*
+!.env.example
+.vercel
+
+# installed / built / scratch
+node_modules
+dist/
+snaps/
+.DS_Store
+*.log
+
+# character pipeline working files (tools/crop-views.mjs, tools/tripo-char.sh)
+assets_src/
+asset-work/

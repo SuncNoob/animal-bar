@@ -1,0 +1,269 @@
+{
+  "note": "The in-game drink menu: common craft-beer styles, written for this game (zh + en). `n` is the slot the drink quiz (src/mood.js) scores; `wallBoard` is the number painted on the boards over the bar (null = not on the wall, 7 = the blackboard). wallBoards are the six painted boards, 3 is on the wall only.",
+  "items": [
+    {
+      "n": 1,
+      "emoji": "🍺",
+      "emoji_en": "🍺",
+      "name": "捷克皮尔森",
+      "name_en": "Czech Pilsner",
+      "style": "Pilsner",
+      "style_en": "Pilsner",
+      "abv": 4.8,
+      "abv_en": 4.8,
+      "keywords": [
+        "清爽",
+        "萨兹酒花",
+        "金黄透亮",
+        "好入口"
+      ],
+      "keywords_en": [
+        "crisp",
+        "Saaz hops",
+        "golden",
+        "easy-drinking"
+      ],
+      "pitch": "第一杯不知道喝什么？皮尔森准没错。",
+      "pitch_en": "Don't know where to start? A crisp pilsner never lets you down.",
+      "story": "浅色麦芽配上辛香的萨兹酒花，低温长时间熟成：金黄透亮，中段是柔和的面包香，收口干净利落，带一点苦。",
+      "story_en": "Pale malt and spicy Saaz hops, lagered cold and long: bright gold, a soft bready middle and a clean, snappy bitter finish.",
+      "wallBoard": 6
+    },
+    {
+      "n": 2,
+      "emoji": "🍊",
+      "emoji_en": "🍊",
+      "name": "浑浊 IPA",
+      "name_en": "Hazy IPA",
+      "style": "新英格兰 IPA",
+      "style_en": "New England IPA",
+      "abv": 6.0,
+      "abv_en": 6.0,
+      "keywords": [
+        "多汁",
+        "热带水果",
+        "苦度柔和",
+        "续杯推荐"
+      ],
+      "keywords_en": [
+        "juicy",
+        "tropical",
+        "soft bitterness",
+        "refill favourite"
+      ],
+      "pitch": "全场人气王：多汁柔顺，一不小心就续杯。",
+      "pitch_en": "The crowd favourite: juicy, soft and dangerously easy to order again.",
+      "story": "双倍干投 Citra 和 Mosaic 酒花，燕麦和小麦打底。芒果、百香果、橙汁的香气扑面而来，酒体绵软，苦度温和。",
+      "story_en": "Double dry-hopped with Citra and Mosaic over a soft oat-and-wheat base. Mango, passion fruit and orange juice on the nose, a pillowy body and only a gentle bitterness.",
+      "wallBoard": 5
+    },
+    {
+      "n": 3,
+      "emoji": "🖤",
+      "emoji_en": "🖤",
+      "name": "帝国世涛",
+      "name_en": "Imperial Stout",
+      "style": "帝国世涛",
+      "style_en": "Imperial Stout",
+      "abv": 9.0,
+      "abv_en": 9.0,
+      "keywords": [
+        "烘烤",
+        "巧克力",
+        "高度数",
+        "睡前一杯"
+      ],
+      "keywords_en": [
+        "roasty",
+        "chocolate",
+        "strong",
+        "nightcap"
+      ],
+      "pitch": "今晚的句号：一杯厚重、要慢慢喝的世涛。",
+      "pitch_en": "Tonight's full stop: a big, slow, roasty nightcap.",
+      "story": "黑得像午夜的湖水：烘烤大麦、黑巧克力和浓缩咖啡，9% 的暖意适合小口慢慢品。",
+      "story_en": "Black as the lake at midnight: roasted barley, dark chocolate and espresso, a warming 9% that wants to be sipped, not gulped.",
+      "wallBoard": null
+    },
+    {
+      "n": 4,
+      "emoji": "🍺",
+      "emoji_en": "🍺",
+      "name": "赫勒斯拉格",
+      "name_en": "Helles Lager",
+      "style": "拉格",
+      "style_en": "Lager",
+      "abv": 4.5,
+      "abv_en": 4.5,
+      "keywords": [
+        "干净",
+        "顺滑",
+        "低苦",
+        "大口吨吨"
+      ],
+      "keywords_en": [
+        "clean",
+        "smooth",
+        "low bitterness",
+        "big gulps"
+      ],
+      "pitch": "干净顺滑的慕尼黑拉格，适合大口吨吨吨。",
+      "pitch_en": "A clean, smooth Munich-style lager, built for big gulps.",
+      "story": "柔和的皮尔森麦芽、一点贵族酒花，再加几周低温熟成：淡淡的面包和蜂蜜香，气泡细腻，收口清爽。",
+      "story_en": "Soft pilsner malt, a whisper of noble hops and weeks of cold conditioning: light bread and honey, gentle bubbles and a crisp, dry finish.",
+      "wallBoard": 1
+    },
+    {
+      "n": 5,
+      "emoji": "🌲",
+      "emoji_en": "🌲",
+      "name": "西海岸 IPA",
+      "name_en": "West Coast IPA",
+      "style": "IPA",
+      "style_en": "IPA",
+      "abv": 6.5,
+      "abv_en": 6.5,
+      "keywords": [
+        "松针",
+        "西柚",
+        "偏苦",
+        "经典"
+      ],
+      "keywords_en": [
+        "piney",
+        "grapefruit",
+        "bitter",
+        "classic"
+      ],
+      "pitch": "想尝经典 IPA，就选它。",
+      "pitch_en": "Want a classic IPA? This is the one.",
+      "story": "干爽明亮：Simcoe、Centennial、Chinook 带来松脂和西柚香，苦度扎实利落。很多人的 IPA 第一杯。",
+      "story_en": "Bone-dry and bright: Simcoe, Centennial and Chinook bring pine resin, grapefruit and a firm, bitter snap. The IPA that started it all.",
+      "wallBoard": 2
+    },
+    {
+      "n": 6,
+      "emoji": "🍌",
+      "emoji_en": "🍌",
+      "name": "德式小麦",
+      "name_en": "Hefeweizen",
+      "style": "小麦啤",
+      "style_en": "Wheat Beer",
+      "abv": 5.2,
+      "abv_en": 5.2,
+      "keywords": [
+        "香蕉丁香",
+        "浑浊",
+        "绵密",
+        "下班一杯"
+      ],
+      "keywords_en": [
+        "banana & clove",
+        "cloudy",
+        "fluffy",
+        "after-work"
+      ],
+      "pitch": "下了班想犒劳自己，一口就知道今晚属于你。",
+      "pitch_en": "Finished work? One sip and the evening is yours.",
+      "story": "巴伐利亚小麦啤：一半小麦麦芽，酵母带出香蕉和丁香的香气。浑浊绵密，高杯配上厚厚的白色泡沫。",
+      "story_en": "A Bavarian wheat beer: half wheat malt and a lively yeast that throws banana and clove. Cloudy, fluffy, a tall glass with a big white head.",
+      "wallBoard": 4
+    },
+    {
+      "n": 7,
+      "emoji": "🍃",
+      "emoji_en": "🍃",
+      "name": "啤酒花气泡水",
+      "name_en": "Hop Water",
+      "style": "无酒精",
+      "style_en": "Alcohol-free",
+      "abv": 0,
+      "abv_en": 0,
+      "keywords": [
+        "无酒精",
+        "气泡",
+        "柑橘酒花",
+        "零糖"
+      ],
+      "keywords_en": [
+        "alcohol-free",
+        "sparkling",
+        "citrus hops",
+        "zero sugar"
+      ],
+      "pitch": "一滴酒都不想碰的夜晚，也有好喝的。",
+      "pitch_en": "For the nights you don't want a drop of alcohol, there's still something good.",
+      "story": "用 Citra 酒花干投的气泡水：有 IPA 的柑橘和松香，没有酒精、没有糖、没有热量。",
+      "story_en": "Sparkling water dry-hopped with Citra: all the citrus and pine of an IPA, with no alcohol, no sugar and no calories.",
+      "wallBoard": 7
+    }
+  ],
+  "wallBoards": [
+    {
+      "no": 1,
+      "name": "赫勒斯拉格",
+      "name_en": "Helles Lager",
+      "abv": 4.5,
+      "emoji": "🍺",
+      "tag": "清爽干净",
+      "tag_en": "clean & crisp",
+      "bg": "#1f6f8b",
+      "ink": "#ffe9a8"
+    },
+    {
+      "no": 2,
+      "name": "西海岸 IPA",
+      "name_en": "West Coast IPA",
+      "abv": 6.5,
+      "emoji": "🌲",
+      "tag": "松针西柚",
+      "tag_en": "pine & grapefruit",
+      "bg": "#2e7d32",
+      "ink": "#fff3c4"
+    },
+    {
+      "no": 3,
+      "name": "古斯",
+      "name_en": "Gose",
+      "abv": 4.2,
+      "emoji": "🍋",
+      "tag": "微酸带咸",
+      "tag_en": "tart & salty",
+      "bg": "#c2185b",
+      "ink": "#fff59d"
+    },
+    {
+      "no": 4,
+      "name": "德式小麦",
+      "name_en": "Hefeweizen",
+      "abv": 5.2,
+      "emoji": "🍌",
+      "tag": "香蕉丁香",
+      "tag_en": "banana & clove",
+      "bg": "#f57c00",
+      "ink": "#ffffff"
+    },
+    {
+      "no": 5,
+      "name": "浑浊 IPA",
+      "name_en": "Hazy IPA",
+      "abv": 6.0,
+      "emoji": "🍊",
+      "tag": "多汁柔和",
+      "tag_en": "juicy & soft",
+      "bg": "#6a1b9a",
+      "ink": "#ffd180"
+    },
+    {
+      "no": 6,
+      "name": "捷克皮尔森",
+      "name_en": "Czech Pilsner",
+      "abv": 4.8,
+      "emoji": "🍺",
+      "tag": "萨兹金黄",
+      "tag_en": "Saaz & gold",
+      "bg": "#b71c1c",
+      "ink": "#fff8e1"
+    }
+  ]
+}
