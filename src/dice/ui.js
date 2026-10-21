@@ -13,6 +13,9 @@ export function dieEl(v, cls = '') {
   return d;
 }
 const AV = { dog_ge: '🐶', rabbit_mei: '🐰', chicken_jibie: '🐥', cat_tuantuan: '🐱', croc_edazi: '🐊' };
+// who rolled a 豹子 of this face (counts as 6), for the verdict / count lines
+const leopards = (s, f, zhai) => s.players.filter((p) => s.dice[p.id]?.length && R.isLeopard(s.dice[p.id], f, zhai)).map((p) => p.nick);
+const leopardNote = (names) => (names.length ? L(`（${names.join('、')} 豹子，算 6 个）`, ` (${names.join(', ')}: five of a kind, counts as 6)`) : '');
 const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 export function mountDiceUI({ dice, me, onStart }) {
@@ -103,7 +106,7 @@ export function mountDiceUI({ dice, me, onStart }) {
       sel = R.minBidFor(f, z, lb, n) || R.minBidFor(6, z, lb, n) || R.minBidFor(6, !z, lb, n) || sel;
     }
     const zhai = R.norm(sel).zhai;
-    const minQ = R.minBidFor(sel.f, zhai, lb, n)?.q ?? n * 5 + 1;
+    const minQ = R.minBidFor(sel.f, zhai, lb, n)?.q ?? R.maxCount(n);
     if (sel.q < minQ) sel.q = minQ;
     const form = h('div', 'dp-bidform steps');
     const s1 = h('div', 'dp-steprow');
@@ -116,7 +119,7 @@ export function mountDiceUI({ dice, me, onStart }) {
     s1.append(mode);
     const s2 = h('div', 'dp-steprow');
     // two inline wheels (no pop-up): swipe / scroll / tap — how many, and which face
-    const qs = []; for (let q = minQ; q <= n * 5 + 1; q++) qs.push({ v: q, label: L(`${q} 个`, `${q}×`) });
+    const qs = []; for (let q = minQ; q <= R.maxCount(n); q++) qs.push({ v: q, label: L(`${q} 个`, `${q}×`) });
     const qW = wheel({ items: qs, value: sel.q, label: L('叫几个', 'How many'), onPick: (v) => { sel.q = v; render(); } });
     const faces = (zhai ? [2, 3, 4, 5, 6, 1] : [2, 3, 4, 5, 6]).map((f) => ({ v: f, label: L(`${f} 点`, `${f}s`), node: dieEl(f, 'mini') }));
     const fW = wheel({ items: faces, value: sel.f, label: L('叫几点', 'Which face'), onPick: (v) => { sel.f = v; const m = R.minBidFor(sel.f, zhai, lb, n); if (m && !R.validBid(sel, lb, n)) sel.q = m.q; render(); } }); // keep the chosen count if it is still legal, else the cheapest legal one
@@ -198,7 +201,7 @@ function history(s) {
     const mBox = h('div', 'dp-field'); mBox.append(h('span', 'dp-flabel', L('1 算不算', 'Do 1s count?'))); const mode = h('div', 'dp-mode');
     for (const [z, label] of [[false, L('飞 · 1 万能', 'Wild · 1s are any')], [true, L('斋 · 1 不算', 'Pure · 1s don’t count')]]) { const b = h('button', 'dp-modebtn' + (R.norm(check).zhai === z ? ' sel' : ''), label); b.type = 'button'; b.disabled = check.f === 1 && !z; b.onclick = () => { check.zhai = z; render(); }; mode.append(b); }
     mBox.append(mode);
-    const res = h('div', 'dp-count'); res.append(h('span', null, L('全桌一共 ', 'Whole table: ')), h('b', null, L(`${cnt} 个 ${check.f}`, `${cnt}× ${check.f}`)), h('span', null, check.f === 1 ? '' : R.norm(check).zhai ? L('（斋）', ' (pure)') : L('（1 当万能）', ' (1s wild)')));
+    const res = h('div', 'dp-count'); res.append(h('span', null, L('全桌一共 ', 'Whole table: ')), h('b', null, L(`${cnt} 个 ${check.f}`, `${cnt}× ${check.f}`)), h('span', null, check.f === 1 ? '' : R.norm(check).zhai ? L('（斋）', ' (pure)') : L('（1 当万能）', ' (1s wild)')), h('span', 'dp-leopard', leopardNote(leopards(s, check.f, R.norm(check).zhai))));
     form.append(fBox, mBox, res); el.append(form);
     const again = h('button', 'dp-call', L('再摇一盅 🎲', 'Shake again 🎲')); again.onclick = () => dice.move('reroll');
     const c = h('div', 'dp-controls'); c.append(again); el.append(c);
@@ -224,7 +227,7 @@ function history(s) {
       const r = s.result;
       st.classList.add('late'); st.style.animationDelay = `${0.65 + s.players.length * 0.4}s`; // after the cups are up
       st.classList.add('dp-verdict');
-      const l1 = h('div', 'dp-v1'); l1.append(h('b', null, nickOf(s, r.bidder)), h('span', null, L(` 叫 ${R.bidText(r.bid)}，`, ` bid ${R.bidText(r.bid)}, `)), h('b', null, nickOf(s, r.caller)), h('span', null, L(` ${{ kai: '开', pi: '劈', fanpi: '反劈' }[r.kind]}！ 实际 `, ` ${{ kai: 'opened', pi: 'doubled', fanpi: 're-doubled' }[r.kind]}! Actually `)), h('b', 'dp-v-count', L(`${r.count} 个`, `${r.count}`)));
+      const l1 = h('div', 'dp-v1'); l1.append(h('b', null, nickOf(s, r.bidder)), h('span', null, L(` 叫 ${R.bidText(r.bid)}，`, ` bid ${R.bidText(r.bid)}, `)), h('b', null, nickOf(s, r.caller)), h('span', null, L(` ${{ kai: '开', pi: '劈', fanpi: '反劈' }[r.kind]}！ 实际 `, ` ${{ kai: 'opened', pi: 'doubled', fanpi: 're-doubled' }[r.kind]}! Actually `)), h('b', 'dp-v-count', L(`${r.count} 个`, `${r.count}`)), h('span', 'dp-leopard', leopardNote(leopards(s, R.norm(r.bid).f, R.norm(r.bid).zhai))));
       const l2 = h('div', 'dp-v2'); l2.append(h('span', 'dp-v-loser', nickOf(s, r.loser)), h('span', null, L(` 喝 ${r.cups} 杯！`, ` drinks ${r.cups}!`)), h('span', null, ' 🍺'.repeat(Math.min(r.cups, 4))));
       st.append(l1, l2);
     }

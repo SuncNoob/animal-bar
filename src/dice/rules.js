@@ -8,18 +8,20 @@ import { L } from '../i18n.js';
 //  - 破斋 (斋 → 飞): 翻倍 with a bigger face, or 翻倍 + 1 with any face
 //  - 开 (stake 1): the next player calls the last bid; 劈 (stake 2): anyone but the bidder calls it;
 //    反劈 (stake 4): the bidder doubles back. Cups are flipped: if the table really has ≥ N, the caller drinks.
+//  - 豹子: a cup whose five dice all show the face counts as 6, not 5 (in 飞 the 1s join in: 3 3 1 3 1 is a 豹子 of 3s)
 
 export const DICE_PER_PLAYER = 5;
 export const FACES = [2, 3, 4, 5, 6, 1];
 export const RANK = { 2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 1: 5 };
 export const STAKE = { kai: 1, pi: 2, fanpi: 4 };
+export const maxCount = (players) => players * (DICE_PER_PLAYER + 1); // every cup a 豹子
 
 export const norm = (b) => ({ q: b.q | 0, f: b.f | 0, zhai: b.f === 1 ? true : !!b.zhai });
 export const minOpen = (players, zhai, f) => (f === 1 ? players : players + (zhai ? 1 : 2)); // 人头一 / 人头+1 斋 / 人头+2 飞
 
 export function validBid(b, prev, players) {
   b = norm(b);
-  if (!RANK.hasOwnProperty(b.f) || b.q < 1 || b.q > players * DICE_PER_PLAYER + 1) return false;
+  if (!RANK.hasOwnProperty(b.f) || b.q < 1 || b.q > maxCount(players)) return false;
   if (!prev) return b.q >= minOpen(players, b.zhai, b.f);
   prev = norm(prev);
   if (prev.zhai === b.zhai) return b.q > prev.q || (b.q === prev.q && RANK[b.f] > RANK[prev.f]);
@@ -30,13 +32,19 @@ export function validBid(b, prev, players) {
 // the cheapest legal bid on a face/mode (used for the UI default and by bots)
 export function minBidFor(f, zhai, prev, players) {
   zhai = f === 1 ? true : zhai;
-  for (let q = 1; q <= players * DICE_PER_PLAYER + 1; q++) if (validBid({ q, f, zhai }, prev, players)) return { q, f, zhai };
+  for (let q = 1; q <= maxCount(players); q++) if (validBid({ q, f, zhai }, prev, players)) return { q, f, zhai };
   return null;
 }
 
+// one cup's count of face f; 豹子 (all five match, wild 1s included in 飞) counts as 6
+export function handCount(dice, f, zhai) {
+  const n = dice.filter((d) => d === f || (!zhai && f !== 1 && d === 1)).length;
+  return n === DICE_PER_PLAYER ? DICE_PER_PLAYER + 1 : n;
+}
+export const isLeopard = (dice, f, zhai) => handCount(dice, f, zhai) > DICE_PER_PLAYER;
 export function countFace(allDice, f, zhai) {
   let n = 0;
-  for (const dice of allDice) for (const d of dice) if (d === f || (!zhai && f !== 1 && d === 1)) n++;
+  for (const dice of allDice) n += handCount(dice, f, zhai);
   return n;
 }
 

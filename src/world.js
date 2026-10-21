@@ -92,7 +92,8 @@ export function buildWorld(scene, { renderer, camera, wordmarkTex, menuTex, crea
 
 // ---- walkable land = the courtyard + deck, plus the natural ground all around the lagoon,
 // fenced by invisible "air walls" at the edge of the world.
-export const AIR = { x0: -19.3, x1: 19.3, z1: 29.3 }; // just inside the dry-stone boundary wall (x = ±20, z = 30)
+const SB = L.sea.shoreBounds;
+export const AIR = { x0: SB.x0 + 1.7, x1: SB.x1 - 1.7, z1: SB.z1 - 1.7 }; // just inside the dry-stone boundary wall (1 m inside shoreBounds)
 const SHORE_Z0 = 5.55;
 export function inYard(x, z) { return x >= BOUNDS.x0 && x <= BOUNDS.x1 && z >= BOUNDS.zNorth + 0.4 && z <= BOUNDS.zLand; }
 export function inShore(x, z) {

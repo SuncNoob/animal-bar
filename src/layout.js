@@ -12,11 +12,11 @@ export const LAYOUT = {
   // "海": a big irregular lagoon south of the deck. The outline is a closed Catmull-Rom loop through
   // these (x, z) points; its north edge runs straight under the deck edge (z = 5.9) between x = -8 and 8.
   sea: {
-    outline: [[-8.0, 5.9], [-11.5, 6.6], [-14.5, 9.5], [-15.5, 14.0], [-13.5, 19.0], [-9.0, 22.5], [-3.0, 24.0],
-      [3.0, 23.5], [8.5, 22.8], [13.0, 19.5], [15.0, 14.5], [14.0, 9.5], [11.5, 6.7], [8.0, 5.9]],
-    island: { x: -1.5, z: 16.5, r: 2.0 }, // rocky islet to swim around (not walkable)
-    floorY: -1.8, shelfY: -0.9,            // deep middle, shallow shelf near the shore
-    shoreBounds: { x0: -21, x1: 21, z0: 5.6, z1: 31 }, // natural ground around the lagoon fills this box
+    outline: [[-8.0, 5.9], [-15.5, 6.9], [-19.6, 10.9], [-20.9, 17.2], [-18.2, 24.2], [-12.2, 29.1], [-4.1, 31.2],
+      [4.1, 30.5], [11.5, 29.6], [17.6, 24.9], [20.2, 17.9], [18.9, 10.9], [15.5, 7.0], [8.0, 5.9]],
+    island: { x: -2.0, z: 20.7, r: 2.2 }, // rocky islet to swim around (not walkable)
+    floorY: -2.6, shelfY: -1.0,            // deep middle, shallow shelf near the shore
+    shoreBounds: { x0: -28, x1: 28, z0: 5.6, z1: 40 }, // natural ground around the lagoon fills this box; the dry-stone wall runs 1 m inside it
   },
   // stone steps into the water: step i top at topY - i*drop, spanning z0+i*depth .. z0+(i+1)*depth
   stairs: { x0: 4.0, x1: 6.4, z0: 5.8, depth: 0.75, steps: 4, topY: -0.1, drop: 0.35 },

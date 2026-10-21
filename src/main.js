@@ -1033,7 +1033,7 @@ function frame(now) {
   const cam = new THREE.Vector3(focus.x + Math.sin(S.yaw) * cx * S.dist, focus.y + cy * S.dist, focus.z + Math.cos(S.yaw) * cx * S.dist);
   const overSea = focus.z > DECK.z0 - 0.5;
   cam.x = overSea ? THREE.MathUtils.clamp(cam.x, AIR.x0 - 1, AIR.x1 + 1) : THREE.MathUtils.clamp(cam.x, BOUNDS.x0 + 0.3, BOUNDS.x1 - 0.3);
-  cam.z = THREE.MathUtils.clamp(cam.z, BOUNDS.zNorth + 0.8, AIR.z1 + 1.5); cam.y = Math.max(cam.y, WATER_Y + 0.5, groundAt(cam.x, cam.z) + 0.45);
+  cam.z = THREE.MathUtils.clamp(cam.z, BOUNDS.zNorth + 0.8, AIR.z1 + 1.5); cam.y = Math.max(cam.y, (world.pool.surfaceHeight ? world.pool.surfaceHeight(cam.x, cam.z, S.t) : WATER_Y) + 0.5, groundAt(cam.x, cam.z) + 0.45); // above the swell, not just the still water level
   if (cam.y > 2.5 && cam.z < LAYOUT.bar.roofFrontZ + 0.6 && cam.x > LAYOUT.bar.x0 - 1.4 && cam.x < LAYOUT.bar.x1 + 0.8) cam.z = LAYOUT.bar.roofFrontZ + 0.6; // stay out of the bar roof
   camera.position.lerp(cam, Math.min(1, dt * 10));
   if (S.camShake > 0) { S.camShake = Math.max(0, S.camShake - dt * 1.5); camera.position.x += (Math.random() - 0.5) * S.camShake; camera.position.y += (Math.random() - 0.5) * S.camShake; }

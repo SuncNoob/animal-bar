@@ -52,10 +52,10 @@ const FLOAT_LEAVES = 18, GROUND_LEAVES = 16;
 
 // low-frequency swell (shared by GPU + CPU so surfaceHeight matches the mesh)
 const WAVES = [
-  { d: [0.83, 0.56], len: 5.6, spd: 0.6, amp: 0.014, ph: 0.0 },
-  { d: [-0.6, 0.8], len: 3.4, spd: 0.5, amp: 0.01, ph: 1.7 },
-  { d: [0.28, -0.96], len: 2.0, spd: 0.42, amp: 0.006, ph: 4.1 },
-  { d: [-0.93, -0.36], len: 1.3, spd: 0.35, amp: 0.004, ph: 2.6 },
+  { d: [0.83, 0.56], len: 8.5, spd: 0.8, amp: 0.04, ph: 0.0 },
+  { d: [-0.6, 0.8], len: 5.2, spd: 0.65, amp: 0.028, ph: 1.7 },
+  { d: [0.28, -0.96], len: 3.0, spd: 0.5, amp: 0.016, ph: 4.1 },
+  { d: [-0.93, -0.36], len: 1.8, spd: 0.4, amp: 0.008, ph: 2.6 },
 ].map((w) => {
   const l = Math.hypot(w.d[0], w.d[1]);
   const k = (2 * Math.PI) / w.len;
@@ -67,9 +67,9 @@ const RING = { speed: 1.35, k: (2 * Math.PI) / 0.75, decay: 0.85, amp: 0.055, li
 // The first one is the main set (lip foam, lace and spray all key off it).
 const SURF_PEAK = 2.2;
 const SURF = [
-  { d: [0.12, -1], len: 9.0, spd: 3.4, amp: 0.62, ph: 0, skew: -0.7 },
-  { d: [-0.35, -1], len: 5.2, spd: 2.8, amp: 0.2, ph: 1.3, skew: -0.4 },
-  { d: [0.6, -0.8], len: 2.6, spd: 1.9, amp: 0.06, ph: 3.7, skew: 0 },
+  { d: [0.12, -1], len: 13.0, spd: 4.1, amp: 1.0, ph: 0, skew: -0.78 },
+  { d: [-0.35, -1], len: 7.0, spd: 3.2, amp: 0.34, ph: 1.3, skew: -0.45 },
+  { d: [0.6, -0.8], len: 3.0, spd: 2.0, amp: 0.08, ph: 3.7, skew: 0 },
 ].map((w) => {
   const l = Math.hypot(w.d[0], w.d[1]), k = (2 * Math.PI) / w.len;
   let bias = 0; for (let i = 0; i < 256; i++) { const th = (i / 256) * 2 * Math.PI; bias += Math.pow(0.5 + 0.5 * Math.sin(th + w.skew * Math.sin(th)), SURF_PEAK) / 256; } // mean height -> 0
@@ -272,7 +272,7 @@ float pw_surfDamp(vec2 p) {
   d = min(d, length(p - vec2(${fl(ISL.x)}, ${fl(ISL.z)})) - ${fl(ISL_WL)});
   vec2 q = abs(p - vec2(${fl((STAIR.x0 + STAIR.x1) / 2)}, ${fl((STAIR.z0 + STAIR.z1) / 2)})) - vec2(${fl((STAIR.x1 - STAIR.x0) / 2 + 0.4)}, ${fl((STAIR.z1 - STAIR.z0) / 2 + 0.4)});
   d = min(d, length(max(q, 0.0)) + min(max(q.x, q.y), 0.0));
-  return smoothstep(0.3, 3.2, d);
+  return smoothstep(0.5, 4.5, d);
 }
 float pw_swell(float th, float skew) { return pow(0.5 + 0.5 * sin(th + skew * sin(th)), ${fl(SURF_PEAK)}); }
 float pw_surfH(vec2 p) {
@@ -297,7 +297,7 @@ vec4 pw_surfLook(vec2 p) {
   float c = cos(ph) * (1.0 + ${fl(SURF[0].skew)} * cos(th));
   float hn2 = pw_swell(dot(p, vec2(${fl(SURF[1].dx)}, ${fl(SURF[1].dz)})) * ${fl(SURF[1].k)} - uPwTime * ${fl(SURF[1].om)} + ${fl(SURF[1].ph)}, ${fl(SURF[1].skew)});
   float k = uPwSurf * pw_surfDamp(p);
-  float lip = smoothstep(0.72, 0.95, hn) * smoothstep(0.02, -0.2, c) * (1.0 - smoothstep(-0.35, -0.75, c));
+  float lip = smoothstep(0.84, 0.97, hn) * smoothstep(0.01, -0.1, c) * (1.0 - smoothstep(-0.2, -0.45, c)); // a thin torn edge just over the crest
   float lace = smoothstep(0.05, 0.3, c) * smoothstep(0.35, 0.6, hn) * (1.0 - smoothstep(0.85, 0.98, hn));
   return vec4(lip * k, lace * k, clamp(hn * 0.85 + hn2 * 0.35, 0.0, 1.0) * k, th);
 }
@@ -333,7 +333,7 @@ const mat2 PW_R1 = mat2(0.8, 0.6, -0.6, 0.8);
 const mat2 PW_R2 = mat2(0.28, -0.96, 0.96, 0.28);
 // fine ripple slopes from 3 scrolling layers of a tileable gradient texture
 vec2 pw_rippleG(vec2 p, float detail) {
-  vec2 g = (texture2D(uPwRipple, p * 0.17 + uPwTime * vec2(0.012, 0.008)).rg * 2.0 - 1.0) * 0.085;
+  vec2 g = (texture2D(uPwRipple, p * 0.11 + uPwTime * vec2(0.012, 0.008)).rg * 2.0 - 1.0) * 0.1;
   vec2 g2 = (texture2D(uPwRipple, PW_R1 * p * 0.42 + uPwTime * vec2(-0.02, 0.016)).rg * 2.0 - 1.0) * 0.065;
   g += transpose(PW_R1) * g2;
   vec2 g3 = (texture2D(uPwRipple, PW_R2 * p * 1.1 + uPwTime * vec2(0.034, -0.027)).rg * 2.0 - 1.0) * 0.045 * detail;
@@ -835,10 +835,10 @@ void main() {
   float depth = PW_WATER_Y - fld.g;
 
   float NdV = clamp(dot(N, V), 0.0, 1.0);
-  float F = 0.04 + 0.96 * pow(1.0 - NdV, 4.0);
+  float F = 0.02 + 0.98 * pow(1.0 - NdV, 5.0);
   vec3 R = reflect(-V, N);
   R.y = abs(R.y);
-  vec3 refl = envRefl(P, R) * 0.82;
+  vec3 refl = envRefl(P, R) * 0.95;
 
   float shallow = 1.0 - smoothstep(0.15, 1.35, depth);
   vec3 body = mix(uDeep, uShallow, shallow);
@@ -884,7 +884,7 @@ void main() {
     float ln = texture2D(uPwRipple, cq * vec2(0.22, 0.9)).b * 0.65 + texture2D(uPwRipple, cq * vec2(0.6, 2.3) + 0.37).b * 0.45;
     foam += sl.x * smoothstep(0.42, 0.62, ln + 0.3 * sl.x);
     float web = (1.0 - smoothstep(0.0, 0.05, abs(n2 + 0.35 * n1 - 0.62))) * smoothstep(0.45, 0.7, ln);
-    foam += sl.y * web * 0.45;
+    foam += sl.y * web * 0.3;
   }
   foam = clamp(foam, 0.0, 1.0);
   col = mix(col, uFoamCol, foam);
@@ -894,7 +894,7 @@ void main() {
   float rough = smoothstep(6.0, 35.0, dist);
   vec3 H = normalize(uPwSunDir + V);
   float nh = max(dot(Ng, H), 0.0);
-  vec3 spec = uPwSunCol * (pow(nh, mix(1600.0, 400.0, rough)) * 3.0 + pow(nh, 160.0) * 0.08);
+  vec3 spec = uPwSunCol * (pow(nh, mix(1600.0, 400.0, rough)) * 3.0 + pow(nh, 160.0) * 0.08 + pow(nh, 5000.0) * 9.0 * (1.0 - rough)); // + glitter on the path toward the sun
   vec3 Rg = reflect(-V, Ng);
   Rg.y = abs(Rg.y);
   vec2 ra = normalize(Rg.xz + 1e-5);
@@ -1065,8 +1065,8 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
     uPwSunRefr: { value: sunRefr },
     uPwSunCol: { value: lin(0xffb27a).multiplyScalar(1.6) },
     uPwCausCol: { value: lin(0xfff0c8) },
-    uPwAbsorb: { value: new THREE.Vector3(0.52, 0.15, 0.12) },
-    uPwScatter: { value: lin(0x11788a).multiplyScalar(0.62) },
+    uPwAbsorb: { value: new THREE.Vector3(0.62, 0.22, 0.18) },
+    uPwScatter: { value: lin(0x0d5f72).multiplyScalar(0.55) },
     uPwLanterns: { value: lanterns.map((l) => new THREE.Vector3(l.x, l.y, l.z)) },
     uPwLanternCol: { value: lin(0xff9a40).multiplyScalar(1.5) },
   };
@@ -1376,8 +1376,8 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
   const glintArr = Array.from({ length: MAX_GLINTS }, () => new THREE.Vector4());
   const waterUniforms = {
     ...shared,
-    uDeep: { value: lin(0x065264) },
-    uShallow: { value: lin(0x2fbcc4) },
+    uDeep: { value: lin(0x03384c) },
+    uShallow: { value: lin(0x22a5ae) },
     uFoamCol: { value: lin(0xeaf7f4) },
     uSurfGlow: { value: rgb(0.05, 0.55, 0.42) },
     uSkyZen: { value: rgb(0.05, 0.06, 0.2) },
@@ -1388,8 +1388,8 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
     uGlintCol: { value: lin(0xff9a3c) },
     uGlints: { value: glintArr },
     uGlintCount: { value: 0 },
-    uDeepAlpha: { value: 0.42 },
-    uShallowAlpha: { value: 0.16 },
+    uDeepAlpha: { value: 0.66 },
+    uShallowAlpha: { value: 0.22 },
     ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
   };
   // lamp glints on the water: our lanterns + courtyard lights (pass {x,y,z,intensity} or Vector3)
@@ -1560,7 +1560,7 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
     let d = Math.min(S.sdfAt(x, z), islandDist(x, z) - ISL_WL);
     const qx = Math.abs(x - (STAIR.x0 + STAIR.x1) / 2) - ((STAIR.x1 - STAIR.x0) / 2 + 0.4), qz = Math.abs(z - (STAIR.z0 + STAIR.z1) / 2) - ((STAIR.z1 - STAIR.z0) / 2 + 0.4);
     d = Math.min(d, Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0));
-    const k = Math.min(1, Math.max(0, (d - 0.3) / 2.9)); return k * k * (3 - 2 * k);
+    const k = Math.min(1, Math.max(0, (d - 0.5) / 4.0)); return k * k * (3 - 2 * k);
   };
   function surfHeight(x, z, t) {
     const surf = shared.uPwSurf.value; if (surf < 0.001) return 0;
