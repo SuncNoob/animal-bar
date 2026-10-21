@@ -27,6 +27,8 @@ import { AVATARS, avatarInfo } from './avatars.js';
 import { L, isEn, langToggle, takeAutoEnter } from './i18n.js';
 import MENU from './data/menu.json';
 import { boardsCanvas, signCanvas } from './scene/menuboards.js';
+import { createComputer } from './scene/computer.js';
+import { openReadme } from './readme.js';
 
 const $ = (id) => document.getElementById(id);
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
@@ -87,7 +89,8 @@ const loadTex = (url) => new Promise((res) => tl.load(url, (t) => { t.colorSpace
 
 // ---------- state ----------
 let world, chat, player, net;
-let disco = null, board = null, dice = null, diceUI = null, bike = null, halloween = null, surfBoard = null;
+let disco = null, board = null, dice = null, diceUI = null, bike = null, pc = null, halloween = null, surfBoard = null;
+const PC = { x: 1.5, z: -1.75, ry: -0.3 }; // the 1995 computer desk, just right of the jukebox
 const bikeCol = { x: BIKE_HOME.x, z: BIKE_HOME.z, r: 0.35 }; // the parked bike's collider (off while someone rides it)
 const remotes = new Map(); // id -> {obj, label, target, ry, st, last}
 let npcs = null, speech = null, jb = null, jbui = null;
@@ -144,6 +147,7 @@ function initScene() {
   board = createSpringboard(scene); COLLIDERS.rects.push(board.collider);
   world.orderRail = createOrderRail(scene);
   bike = createBike(scene); COLLIDERS.circles.push(bikeCol);
+  pc = createComputer(scene, PC); COLLIDERS.circles.push(...pc.colliders);
   camera.position.set(14, 7, 10);
   await loadStep(0.82, L('最后擦一遍吧台…', 'One last wipe of the bar…'));
   try { await renderer.compileAsync(scene, camera); } catch {} // compile shaders off the main thread where the GPU driver allows
@@ -284,6 +288,11 @@ function showMood() {
   openMood($('modal-body'), { onShowMenu: showMenu, onClose: closeModal, onShare: (t) => chat.sendText(t), onOrder: placeOrder });
 }
 function showJukebox() { jbui.open(); }
+function showComputer() {
+  openModal('Animal Bar · README'); $('modal').querySelector('.modal-card').classList.add('win95');
+  if (pc && S.mode === 'land') { S.ry = Math.atan2(PC.x - pos.x, PC.z - pos.z); S.emote = null; } // turn to the screen
+  openReadme($('modal-body'), { onClose: closeModal, onShare: (t) => chat?.sendText(t) });
+}
 
 // ---------- actions ----------
 let nearAction = null;
@@ -302,6 +311,7 @@ function currentAction() {
   const dj = Math.hypot(pos.x - SPOTS.jukebox.x, pos.z - SPOTS.jukebox.z); if (dj < 1.9) opts.push([dj, { label: L('点唱机', 'Jukebox'), run: showJukebox }]);
   if (catPos) { const dc = Math.hypot(pos.x - catPos.x, pos.z - catPos.z); if (dc < 2.2) opts.push([dc + 0.3, { label: L('问问团团', 'Ask Tuantuan'), run: showMood }]); }
   if (seat) opts.push([Math.hypot(pos.x - seat.x, pos.z - seat.z) - 0.25, { label: L('坐下', 'Sit down'), run: () => sitOn(seat) }]);
+  if (pc) { const dp = Math.hypot(pos.x - pc.spot.x, pos.z - pc.spot.z); if (dp < 1.2) opts.push([dp - 0.2, { label: L('看说明书 🖥', 'Read the README 🖥'), run: showComputer }]); }
   if (opts.length) return opts.sort((a, b) => a[0] - b[0])[0][1];
   if ((crocPos && pos.distanceTo(crocPos) < 2.4) || (pos.z < -2.6 && pos.x > -1.8)) return { label: L('看酒单', 'See the drinks'), run: showMenu };
   return null;
@@ -822,7 +832,7 @@ function frame(now) {
   if (now < last) return; // a dev tick() ran the clock ahead: wait for real time to catch up
   if (!devFast) governQuality(now - last, now);
   const dt = Math.min(0.05, (now - last) / 1000); last = now; S.t += dt;
-  world.update(S.t, dt); disco?.update(dt, S.t); halloween?.update(dt, S.t, disco?.mix.halloween || 0); world.pool.setSurf?.(disco?.mix.disco || 0); board?.update(dt); world.orderRail?.update(dt, S.t);
+  world.update(S.t, dt); disco?.update(dt, S.t); halloween?.update(dt, S.t, disco?.mix.halloween || 0); world.pool.setSurf?.(disco?.mix.disco || 0); board?.update(dt); world.orderRail?.update(dt, S.t); pc?.update(dt, S.t);
   if (!player) { // attract camera: slow orbit over the courtyard
     npcs.update(dt, null, world.pool.surfaceHeight, camera.position);
     const a = S.t * 0.06 + 0.6; camera.position.set(Math.sin(a) * 13, 6.2, -1.5 + Math.cos(a) * 11); camera.lookAt(0, 1.4, -3);
