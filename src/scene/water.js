@@ -66,9 +66,12 @@ const RING = { speed: 1.35, k: (2 * Math.PI) / 0.75, decay: 0.85, amp: 0.055, li
 // Each swell is pow(0.5 + 0.5 sin(θ + skew·sin θ), SURF_PEAK): a negative skew gives a steep front face and a long back.
 // The first one is the main set (lip foam, lace and spray all key off it).
 const SURF_PEAK = 2.2;
+// the bed shapes the swell (see pw_swellAt): depth of the deep floor, phase lag at the waterline (refraction),
+// breaking limit γ (height ≤ γ·depth), run-up height on the banks
+const SURF_D0 = WATER_Y - FLOOR_Y, SURF_LAG = 3.0, SURF_GAMMA = 0.6, SURF_SWASH = 0.28;
 const SURF = [
-  { d: [0.12, -1], len: 13.0, spd: 4.1, amp: 1.0, ph: 0, skew: -0.78 },
-  { d: [-0.35, -1], len: 7.0, spd: 3.2, amp: 0.34, ph: 1.3, skew: -0.45 },
+  { d: [0.12, -1], len: 13.0, spd: 4.1, amp: 1.2, ph: 0, skew: -0.78 },
+  { d: [-0.35, -1], len: 7.0, spd: 3.2, amp: 0.4, ph: 1.3, skew: -0.45 },
   { d: [0.6, -0.8], len: 3.0, spd: 2.0, amp: 0.08, ph: 3.7, skew: 0 },
 ].map((w) => {
   const l = Math.hypot(w.d[0], w.d[1]), k = (2 * Math.PI) / w.len;
@@ -77,7 +80,6 @@ const SURF = [
 });
 const swell = (th, skew) => Math.pow(0.5 + 0.5 * Math.sin(th + skew * Math.sin(th)), SURF_PEAK);
 // main set at a point: hn = normalized height 0..1, c < 0 on the front face (height falling as the crest approaches)
-const surfMain = (x, z, t) => { const w = SURF[0], th = (x * w.dx + z * w.dz) * w.k - t * w.om + w.ph, ph = th + w.skew * Math.sin(th); return { hn: swell(th, w.skew), c: Math.cos(ph) * (1 + w.skew * Math.cos(th)) }; };
 
 const fl = (x) => (+x).toFixed(6);
 const lin = (hex) => new THREE.Color(hex); // hex -> linear working space
@@ -267,19 +269,33 @@ vec2 pw_waveG0(vec2 p) {
   return g;
 }
 uniform float uPwSurf;
+uniform float uPwWetUp; // how far up the banks the swash has wetted lately (dries slowly; see update())
+// The disco swell feels the lagoon bed (the field's bed height), like waves coming into a beach: it lags over the
+// shallows so crests bend along the depth contours (refraction), grows toward the shallows (shoaling, Green's law),
+// saturates at γ·depth so it breaks on the shelves and around the islet and dies at the waterline (depth-limited
+// breaking), and a thin run-up washes the banks (swash). Only the deck's masonry wall and the stairs are kept calm.
+// The CPU mirror (surfHeight in createPool) must stay identical: swimmers and surfers ride it.
+float pw_depth(vec2 p) { return max(PW_WATER_Y - pw_field(p).g, 0.0); }
 float pw_surfDamp(vec2 p) {
-  float d = pw_field(p).r;
-  d = min(d, length(p - vec2(${fl(ISL.x)}, ${fl(ISL.z)})) - ${fl(ISL_WL)});
+  float wall = mix(1.0, smoothstep(0.5, 3.5, p.y - ${fl(NORTH_Z)}), 1.0 - smoothstep(${fl(WALL_X)}, ${fl(WALL_X + 2)}, abs(p.x)));
   vec2 q = abs(p - vec2(${fl((STAIR.x0 + STAIR.x1) / 2)}, ${fl((STAIR.z0 + STAIR.z1) / 2)})) - vec2(${fl((STAIR.x1 - STAIR.x0) / 2 + 0.4)}, ${fl((STAIR.z1 - STAIR.z0) / 2 + 0.4)});
-  d = min(d, length(max(q, 0.0)) + min(max(q.x, q.y), 0.0));
-  return smoothstep(0.5, 4.5, d);
+  return min(wall, smoothstep(0.3, 2.5, length(max(q, 0.0)) + min(max(q.x, q.y), 0.0)));
 }
 float pw_swell(float th, float skew) { return pow(0.5 + 0.5 * sin(th + skew * sin(th)), ${fl(SURF_PEAK)}); }
+// one swell at p over depth d: x = phase, y = height (shoaled, depth-limited), z = how far past breaking (A / γd)
+vec3 pw_swellAt(vec2 p, float d, vec2 dir, float k, float om, float ph0, float amp) {
+  float th = dot(p, dir) * k - uPwTime * om + ph0 + ${fl(SURF_LAG)} * (1.0 - clamp(d / ${fl(SURF_D0)}, 0.0, 1.0));
+  float a = amp * uPwSurf * clamp(pow(${fl(SURF_D0)} / max(d, 0.05), 0.25), 1.0, 1.6);
+  float cap = max(${fl(SURF_GAMMA)} * d, 1e-4);
+  return vec3(th, cap * tanh(a / cap), a / cap);
+}
 float pw_surfH(vec2 p) {
   if (uPwSurf < 0.001) return 0.0;
-  float h = 0.0;
-  ${SURF.map((w) => `h += ${fl(w.amp)} * (pw_swell(dot(p, vec2(${fl(w.dx)}, ${fl(w.dz)})) * ${fl(w.k)} - uPwTime * ${fl(w.om)} + ${fl(w.ph)}, ${fl(w.skew)}) - ${fl(w.bias)});`).join('\n  ')}
-  return h * uPwSurf * pw_surfDamp(p);
+  float d = pw_depth(p), h = 0.0; vec3 s;
+  ${SURF.map((w) => `s = pw_swellAt(p, d, vec2(${fl(w.dx)}, ${fl(w.dz)}), ${fl(w.k)}, ${fl(w.om)}, ${fl(w.ph)}, ${fl(w.amp)}); h += s.y * (pw_swell(s.x, ${fl(w.skew)}) - ${fl(w.bias)});`).join('\n  ')}
+  s = pw_swellAt(p, d, vec2(${fl(SURF[0].dx)}, ${fl(SURF[0].dz)}), ${fl(SURF[0].k)}, ${fl(SURF[0].om)}, ${fl(SURF[0].ph)}, ${fl(SURF[0].amp)});
+  h += ${fl(SURF_SWASH)} * uPwSurf * (pw_swell(s.x, ${fl(SURF[0].skew)}) - ${fl(SURF[0].bias)}) * (1.0 - smoothstep(0.0, 0.5, d)); // swash on the banks
+  return h * pw_surfDamp(p);
 }
 vec2 pw_surfG(vec2 p) {
   if (uPwSurf < 0.001) return vec2(0.0);
@@ -287,19 +303,23 @@ vec2 pw_surfG(vec2 p) {
   float h0 = pw_surfH(p);
   return vec2(pw_surfH(p + vec2(e, 0.0)) - h0, pw_surfH(p + vec2(0.0, e)) - h0) / e;
 }
-// main set: x = lip foam on the breaking front edge, y = lace left on the back face, z = crest thickness (backlit glow),
-// w = phase along the travel direction (for noise that rides with the crest)
+// main set: x = foam (a thin lip over deep water; whitewater that rides the crest and lingers behind it where the
+// swell breaks; foam at the swash line), y = lace on the back face, z = crest thickness (backlit glow), w = phase
 vec4 pw_surfLook(vec2 p) {
   if (uPwSurf < 0.001) return vec4(0.0);
-  float th = dot(p, vec2(${fl(SURF[0].dx)}, ${fl(SURF[0].dz)})) * ${fl(SURF[0].k)} - uPwTime * ${fl(SURF[0].om)} + ${fl(SURF[0].ph)};
-  float ph = th + ${fl(SURF[0].skew)} * sin(th);
+  float d = pw_depth(p);
+  vec3 s = pw_swellAt(p, d, vec2(${fl(SURF[0].dx)}, ${fl(SURF[0].dz)}), ${fl(SURF[0].k)}, ${fl(SURF[0].om)}, ${fl(SURF[0].ph)}, ${fl(SURF[0].amp)});
+  float th = s.x, ph = th + ${fl(SURF[0].skew)} * sin(th);
   float hn = pow(0.5 + 0.5 * sin(ph), ${fl(SURF_PEAK)});
   float c = cos(ph) * (1.0 + ${fl(SURF[0].skew)} * cos(th));
-  float hn2 = pw_swell(dot(p, vec2(${fl(SURF[1].dx)}, ${fl(SURF[1].dz)})) * ${fl(SURF[1].k)} - uPwTime * ${fl(SURF[1].om)} + ${fl(SURF[1].ph)}, ${fl(SURF[1].skew)});
-  float k = uPwSurf * pw_surfDamp(p);
-  float lip = smoothstep(0.84, 0.97, hn) * smoothstep(0.01, -0.1, c) * (1.0 - smoothstep(-0.2, -0.45, c)); // a thin torn edge just over the crest
-  float lace = smoothstep(0.05, 0.3, c) * smoothstep(0.35, 0.6, hn) * (1.0 - smoothstep(0.85, 0.98, hn));
-  return vec4(lip * k, lace * k, clamp(hn * 0.85 + hn2 * 0.35, 0.0, 1.0) * k, th);
+  float hn2 = pw_swell(pw_swellAt(p, d, vec2(${fl(SURF[1].dx)}, ${fl(SURF[1].dz)}), ${fl(SURF[1].k)}, ${fl(SURF[1].om)}, ${fl(SURF[1].ph)}, ${fl(SURF[1].amp)}).x, ${fl(SURF[1].skew)});
+  float k = uPwSurf * pw_surfDamp(p), grown = clamp(s.y / ${fl(SURF[0].amp * 0.6)}, 0.0, 1.0);
+  float brk = smoothstep(1.3, 2.8, s.z);
+  float lip = smoothstep(0.84, 0.97, hn) * smoothstep(0.01, -0.1, c) * (1.0 - smoothstep(-0.2, -0.45, c)) * (1.0 - brk);
+  float tail = mod(1.5708 - ph, 6.2832) / 6.2832; // 0 at the crest, growing behind it
+  float ww = brk * exp(-tail * 5.5) * 0.8 * smoothstep(0.02, 0.25, d); // fades well before the next crest
+  float swash = (1.0 - smoothstep(0.04, 0.4, d)) * smoothstep(0.35, 0.8, hn) * 0.85;
+  return vec4(max(lip, max(ww, swash)) * k, smoothstep(0.05, 0.3, c) * smoothstep(0.35, 0.6, hn) * (1.0 - smoothstep(0.85, 0.98, hn)) * (1.0 - brk) * k, clamp(hn * 0.85 + hn2 * 0.35, 0.0, 1.0) * grown * k, th);
 }
 vec2 pw_waveG(vec2 p) { return pw_waveG0(p) + pw_surfG(p); }
 float pw_waveH(vec2 p) { return pw_waveH0(p) + pw_surfH(p); }
@@ -645,13 +665,18 @@ const SUNBOOST = /* glsl */ `
     vec2 sp = vPW.xz + uPwSunRefr.xz * (pwBelow / uPwSunRefr.y);
     float inSea = smoothstep(-0.1, 0.25, pw_field(sp).r);
     float c = pw_caustics(sp);
+    if (uPwSurf > 0.001) { // the swell's crests focus the sunlight: caustics brighten under them and fade in the troughs
+      vec3 sw = pw_swellAt(sp, pw_depth(sp), vec2(${fl(SURF[0].dx)}, ${fl(SURF[0].dz)}), ${fl(SURF[0].k)}, ${fl(SURF[0].om)}, ${fl(SURF[0].ph)}, ${fl(SURF[0].amp)});
+      c *= mix(1.0, 0.45 + 1.5 * pw_swell(sw.x, ${fl(SURF[0].skew)}), uPwSurf);
+    }
     vec3 boost = (vec3(0.22, 0.4, 0.44) + uPwCausCol * c * 3.0) * mix(0.25, 1.0, inSea);
     pwSunBoost = mix(vec3(1.0), boost, pwUw);
   }
 }
 `;
 
-const WET_LINE = 'float wl = PW_WATER_Y + 0.04 + 0.02 * sin(uPwTime * 1.3 + vPW.x * 1.7 + vPW.z * 1.3);';
+// the wet line: a little lap, plus wherever the swash has run up lately, uneven along the bank
+const WET_LINE = 'float wl = PW_WATER_Y + 0.04 + 0.02 * sin(uPwTime * 1.3 + vPW.x * 1.7 + vPW.z * 1.3) + uPwWetUp * (0.55 + 0.45 * pw_vnoise(vPW.xz * 0.7));';
 
 function colorMod(kind) {
   if (kind === 'ground') return /* glsl */ `
@@ -846,8 +871,8 @@ void main() {
   a *= mix(0.6, 1.0, smoothstep(0.0, 1.4, sd));
   // 蹦迪 swell: a moving mass of water — dark troughs, glassy green-blue crests lit through from behind
   vec4 sl = pw_surfLook(xz);
-  float swellK = uPwSurf * pw_surfDamp(xz);
-  body = mix(body, uDeep * 0.5, swellK * (1.0 - sl.z / max(swellK, 1e-3)) * 0.7);
+  float swellK = uPwSurf * pw_surfDamp(xz) * smoothstep(0.2, 1.2, pw_depth(xz)); // the shallows stay light
+  body = mix(body, uDeep * 0.5, swellK * max(0.0, 1.0 - sl.z / max(uPwSurf * pw_surfDamp(xz), 1e-3)) * 0.7);
   a = mix(a, 0.88, swellK * 0.85);
   vec3 col = mix(body, refl, F);
   a = mix(a, 1.0, F);
@@ -882,7 +907,7 @@ void main() {
     // lip: torn white edge riding with the crest (noise in crest-aligned coordinates); lace: thin web left behind it
     vec2 cq = vec2(dot(xz, vec2(${fl(-SURF[0].dz)}, ${fl(SURF[0].dx)})), sl.w / ${fl(SURF[0].k)});
     float ln = texture2D(uPwRipple, cq * vec2(0.22, 0.9)).b * 0.65 + texture2D(uPwRipple, cq * vec2(0.6, 2.3) + 0.37).b * 0.45;
-    foam += sl.x * smoothstep(0.42, 0.62, ln + 0.3 * sl.x);
+    foam += sl.x * smoothstep(0.45, 0.68, ln + 0.18 * sl.x); // torn into patches, never one solid band
     float web = (1.0 - smoothstep(0.0, 0.05, abs(n2 + 0.35 * n1 - 0.62))) * smoothstep(0.45, 0.7, ln);
     foam += sl.y * web * 0.3;
   }
@@ -1046,6 +1071,7 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
   }
 
   // ---- shared uniforms ----
+  let bedNode = null; // bed heights at the field nodes (filled with the field texture; the swell's CPU mirror reads them)
   const rings = Array.from({ length: MAX_RINGS }, () => ({ x: 0, z: 0, t0: -1e4, s: 0 }));
   const sunRefr = (() => {
     const d = SUN_DIR.clone().negate(); // light travel direction
@@ -1056,6 +1082,7 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
   const shared = {
     uPwTime: { value: 0 },
     uPwSurf: { value: 0 },
+    uPwWetUp: { value: 0 },
     uPwRings: { value: rings.map(() => new THREE.Vector4(0, 0, -1e4, 0)) },
     uPwRipple: { value: keep(makeRippleTexture(rand, aniso)) },
     uPwCaus: { value: keep(makeCausticTexture(rand, aniso)) },
@@ -1145,6 +1172,7 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
   // =========================================================================
   {
     const { NX, NZ, GX0, GZ0, CS, grid } = S;
+    bedNode = new Float32Array(NX * NZ);
     const foam = new Float32Array(NX * NZ);
     for (let j = 0; j < NZ; j++) {
       for (let i = 0; i < NX; i++) {
@@ -1168,7 +1196,8 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
     for (let j = 0; j < NZ; j++) {
       for (let i = 0; i < NX; i++) {
         const k = j * NX + i, x = GX0 + i * CS, z = GZ0 + j * CS;
-        data[k * 4] = h(grid[k]); data[k * 4 + 1] = h(terrainHeight(x, z, grid[k])); data[k * 4 + 2] = h(foam[k]); data[k * 4 + 3] = h(1);
+        bedNode[k] = terrainHeight(x, z, grid[k]);
+        data[k * 4] = h(grid[k]); data[k * 4 + 1] = h(bedNode[k]); data[k * 4 + 2] = h(foam[k]); data[k * 4 + 3] = h(1);
       }
     }
     const tex = new THREE.DataTexture(data, NX, NZ, THREE.RGBAFormat, THREE.HalfFloatType);
@@ -1556,16 +1585,30 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
     return h;
   }
   // animated water height at (x, z) — identical to the rendered vertex displacement
-  const surfDamp = (x, z) => {
-    let d = Math.min(S.sdfAt(x, z), islandDist(x, z) - ISL_WL);
+  // ---- the swell, mirrored from the shader (pw_depth / pw_surfDamp / pw_swellAt / pw_surfH): keep them identical ----
+  const bedAt = (x, z) => { // bilinear over the same nodes the field texture holds (channel g)
+    const fx = Math.min(S.NX - 1, Math.max(0, (x - S.GX0) / S.CS)), fz = Math.min(S.NZ - 1, Math.max(0, (z - S.GZ0) / S.CS));
+    const i0 = Math.floor(fx), j0 = Math.floor(fz), i1 = Math.min(i0 + 1, S.NX - 1), j1 = Math.min(j0 + 1, S.NZ - 1), u = fx - i0, v = fz - j0;
+    return lerp(lerp(bedNode[j0 * S.NX + i0], bedNode[j0 * S.NX + i1], u), lerp(bedNode[j1 * S.NX + i0], bedNode[j1 * S.NX + i1], u), v);
+  };
+  const depthAt = (x, z) => Math.max(WATER_Y - bedAt(x, z), 0);
+  const surfDamp = (x, z) => { // calm only against the deck's masonry wall and the stairs
+    const wall = lerp(1, smooth(0.5, 3.5, z - NORTH_Z), 1 - smooth(WALL_X, WALL_X + 2, Math.abs(x)));
     const qx = Math.abs(x - (STAIR.x0 + STAIR.x1) / 2) - ((STAIR.x1 - STAIR.x0) / 2 + 0.4), qz = Math.abs(z - (STAIR.z0 + STAIR.z1) / 2) - ((STAIR.z1 - STAIR.z0) / 2 + 0.4);
-    d = Math.min(d, Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0));
-    const k = Math.min(1, Math.max(0, (d - 0.5) / 4.0)); return k * k * (3 - 2 * k);
+    return Math.min(wall, smooth(0.3, 2.5, Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0)));
+  };
+  const swellAt = (x, z, d, w, t, surf) => {
+    const th = (x * w.dx + z * w.dz) * w.k - t * w.om + w.ph + SURF_LAG * (1 - Math.min(1, Math.max(0, d / SURF_D0)));
+    const a = w.amp * surf * Math.min(1.6, Math.max(1, Math.pow(SURF_D0 / Math.max(d, 0.05), 0.25))), cap = Math.max(SURF_GAMMA * d, 1e-4);
+    return { th, h: cap * Math.tanh(a / cap), br: a / cap };
   };
   function surfHeight(x, z, t) {
     const surf = shared.uPwSurf.value; if (surf < 0.001) return 0;
-    let h = 0; for (const w of SURF) h += w.amp * (swell((x * w.dx + z * w.dz) * w.k - t * w.om + w.ph, w.skew) - w.bias);
-    return h * surf * surfDamp(x, z);
+    const d = depthAt(x, z); let h = 0;
+    for (const w of SURF) { const s = swellAt(x, z, d, w, t, surf); h += s.h * (swell(s.th, w.skew) - w.bias); }
+    const s0 = swellAt(x, z, d, SURF[0], t, surf);
+    h += SURF_SWASH * surf * (swell(s0.th, SURF[0].skew) - SURF[0].bias) * (1 - smooth(0, 0.5, d)); // swash on the banks
+    return h * surfDamp(x, z);
   }
   function surfaceHeight(x, z, t = now) {
     let h = WATER_Y;
@@ -1647,8 +1690,9 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
     for (let tries = 0; tries < 8; tries++) {
       const x = S.minX + Math.random() * (S.maxX - S.minX), z = S.minZ + Math.random() * (S.maxZ - S.minZ);
       if (!insideSea(x, z, 1)) continue;
-      const m = surfMain(x, z, t), damp = surfDamp(x, z);
-      if (m.hn < 0.7 || m.c > -0.05 || damp < 0.6) continue;
+      const d = depthAt(x, z), s = swellAt(x, z, d, w, t, shared.uPwSurf.value), ph = s.th + w.skew * Math.sin(s.th);
+      const hn = swell(s.th, w.skew), c = Math.cos(ph) * (1 + w.skew * Math.cos(s.th));
+      if (hn < 0.65 || c > -0.05 || s.br < 1.3 || d < 0.15 || surfDamp(x, z) < 0.6) continue; // spray where it breaks
       const slot = dropSlot; dropSlot = (dropSlot + 1) % DROP_SLOTS;
       const y = surfaceHeight(x, z, t), px = -w.dz, pz = w.dx; // along the crest
       for (let k = 0; k < DROPS_PER_SLOT; k++) {
@@ -1667,6 +1711,9 @@ export function createPool({ renderer, scene, camera } = {}) { // eslint-disable
   }
 
   function update(t, dt = 1 / 60) {
+    // the banks get wet up to the swash's reach at once, and dry over ~20 s once the swell calms
+    const wetTarget = shared.uPwSurf.value * SURF_SWASH * 0.9;
+    shared.uPwWetUp.value = Math.max(wetTarget, shared.uPwWetUp.value - Math.min(dt, 0.1) * 0.012);
     now = t;
     shared.uPwTime.value = t;
     updateLeaves(t, Math.min(dt, 0.1));
